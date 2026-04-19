@@ -13,22 +13,19 @@ fmtname(char *path)
   for(p=path+strlen(path); p >= path && *p != '/'; p--)
     ;
   p++;
-
-  // Return blank-padded name.
-  if(strlen(p) >= DIRSIZ)
-    return p;
-  memmove(buf, p, strlen(p));
-  memset(buf+strlen(p), ' ', DIRSIZ-strlen(p));
-  return buf;
+  path[strlen(path)] = 0;
+  return p;
 }
 
 void
-ls(char *path)
+find(char *path, char* filename)
 {
   char buf[512], *p;
   int fd;
   struct dirent de;
   struct stat st;
+  char *path_filename;
+  // printf("path=%s\n", path);
   if((fd = open(path, 0)) < 0){
     fprintf(2, "ls: cannot open %s\n", path);
     return;
@@ -42,7 +39,9 @@ ls(char *path)
 
   switch(st.type){
   case T_FILE:
-    printf("%s %d %d %l\n", fmtname(path), st.type, st.ino, st.size);
+    if (strcmp(fmtname(path), filename) == 0) {
+      printf("%s\n", path);
+    }
     break;
 
   case T_DIR:
@@ -62,7 +61,10 @@ ls(char *path)
         printf("ls: cannot stat %s\n", buf);
         continue;
       }
-      printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
+      path_filename = fmtname(buf);
+      if (strcmp(path_filename, ".") != 0 && strcmp(path_filename, "..") != 0) {
+        find(buf, filename);
+      }
     }
     break;
   }
@@ -73,12 +75,12 @@ int
 main(int argc, char *argv[])
 {
   int i;
-
-  if(argc < 2){
-    ls(".");
-    exit(0);
+  if (argc == 3) {
+    find(argv[1], argv[2]);
   }
-  for(i=1; i<argc; i++)
-    ls(argv[i]);
+  else {
+    fprintf(2, "wrong usage");
+    exit(-1);
+  }
   exit(0);
 }
